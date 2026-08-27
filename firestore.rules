@@ -1,0 +1,57 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedInAs(uid) { return request.auth != null && request.auth.uid == uid; }
+    function validString(value, max) { return value is string && value.size() <= max; }
+    function validCase(data, uid) {
+      return data.ownerUid == uid
+        && validString(data.title, 120) && data.title.size() > 0
+        && data.status in ['draft', 'ready', 'analyzing', 'complete', 'failed']
+        && data.analysisStage in ['idle', 'preparing', 'extracting', 'synthesizing', 'finalizing']
+        && data.recordCount is int && data.recordCount >= 0 && data.recordCount <= 10
+        && data.recordBytes is int && data.recordBytes >= 0 && data.recordBytes <= 50 * 1024 * 1024
+        && data.progressCurrent is int && data.progressCurrent >= 0
+        && data.progressTotal is int && data.progressTotal >= 0 && data.progressTotal <= 10
+        && data.intake is map
+        && validString(data.intake.ageOrRange, 40)
+        && (data.intake.sexRelevantToCare == null || validString(data.intake.sexRelevantToCare, 80))
+        && validString(data.intake.currentDiagnosis, 2000)
+        && validString(data.intake.symptoms, 8000)
+        && validString(data.intake.currentTreatment, 5000)
+        && validString(data.intake.relevantHistory, 5000)
+        && validString(data.intake.mainQuestions, 5000)
+        && data.intake.language in ['en', 'vi'];
+    }
+    match /users/{uid} {
+      allow read: if signedInAs(uid);
+      allow create: if signedInAs(uid) && request.resource.data.email == request.auth.token.email;
+      allow update: if signedInAs(uid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'email', 'photoURL', 'lastSeenAt'])
+        && request.resource.data.email == request.auth.token.email;
+      allow delete: if signedInAs(uid);
+
+      match /cases/{caseId} {
+        allow read: if signedInAs(uid);
+        allow create: if signedInAs(uid) && validCase(request.resource.data, uid) && request.resource.data.status == 'draft';
+        allow update: if signedInAs(uid) && validCase(request.resource.data, uid)
+          && request.resource.data.ownerUid == resource.data.ownerUid
+          && (
+            (resource.data.status == 'draft' && request.resource.data.status == 'draft' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'intake', 'updatedAt']))
+            || (resource.data.status == 'draft' && request.resource.data.status == 'ready' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'consent', 'updatedAt']))
+            || (request.resource.data.status == resource.data.status && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'updatedAt']))
+          );
+
+        match /records/{recordId} {
+          allow read: if signedInAs(uid);
+          allow write: if false;
+        }
+
+        match /analyses/{analysisId} {
+          allow read: if signedInAs(uid);
+          allow write: if false;
+        }
+      }
+    }
+    match /{document=**} { allow read, write: if false; }
+  }
+}
