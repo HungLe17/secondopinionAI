@@ -2,6 +2,9 @@ export type AppLanguage = "en" | "vi";
 
 const en = {
   "case.backToCases":"Back to cases",
+  "home.loading":"Preparing your private review workspace…",
+  "report.reviewTitle":"Patient-facing clinical record review", "report.reviewedRecords":"Records reviewed", "report.preparedOn":"Prepared", "report.reportStatus":"Report status", "report.readyToReview":"Ready to review",
+  "caseNew.sexPrompt":"Select if relevant", "caseNew.sexFemale":"Female", "caseNew.sexMale":"Male", "caseNew.sexIntersex":"Intersex", "caseNew.sexPreferNot":"Prefer not to say", "caseNew.detailsHelp":"Start with the basic context needed to read the records in the right clinical frame.", "caseNew.ageHelp":"Enter an exact age or choose a range.", "caseNew.sexHelp":"Include this only when it may affect the condition, testing, or treatment.", "caseNew.languageHelp":"The assessment and Ask AI responses will use this language.", "caseNew.clinicalHelp":"Use plain language. Include what changed, when it started, and what you most want clarified.",
   "dashboard.workspaceTitle":"Your case workspace", "dashboard.workspaceBody":"Review existing assessments or start a new case with de-identified records.", "dashboard.search":"Search cases", "dashboard.searchPlaceholder":"Search by case name", "dashboard.filterLabel":"Filter cases", "dashboard.filterAll":"All", "dashboard.filterReady":"Reports", "dashboard.filterActive":"In progress", "dashboard.noResults":"No matching cases", "dashboard.clearFilters":"Clear search and filters",
   "login.continueTerms":"By continuing, you agree to the",
   "case.titleLabel":"Case title", "caseStatus.draft":"draft", "caseStatus.ready":"ready", "caseStatus.analyzing":"analyzing", "caseStatus.complete":"assessment ready", "caseStatus.failed":"needs attention",
@@ -29,6 +32,9 @@ const en = {
 
 const vi: Record<keyof typeof en, string> = {
   "case.backToCases":"Quay lại danh sách ca bệnh",
+  "home.loading":"Đang chuẩn bị không gian đánh giá riêng tư…",
+  "report.reviewTitle":"Bản đánh giá hồ sơ lâm sàng dành cho người bệnh", "report.reviewedRecords":"Hồ sơ đã xem", "report.preparedOn":"Ngày chuẩn bị", "report.reportStatus":"Trạng thái báo cáo", "report.readyToReview":"Sẵn sàng xem",
+  "caseNew.sexPrompt":"Chọn nếu có liên quan", "caseNew.sexFemale":"Nữ", "caseNew.sexMale":"Nam", "caseNew.sexIntersex":"Liên giới tính", "caseNew.sexPreferNot":"Không muốn trả lời", "caseNew.detailsHelp":"Bắt đầu với thông tin cơ bản để hồ sơ được đọc trong đúng bối cảnh lâm sàng.", "caseNew.ageHelp":"Nhập tuổi chính xác hoặc chọn một khoảng tuổi.", "caseNew.sexHelp":"Chỉ thêm thông tin này khi có thể ảnh hưởng đến bệnh lý, xét nghiệm hoặc điều trị.", "caseNew.languageHelp":"Bản đánh giá và câu trả lời Hỏi AI sẽ dùng ngôn ngữ này.", "caseNew.clinicalHelp":"Hãy viết bằng ngôn ngữ tự nhiên. Nêu điều gì đã thay đổi, bắt đầu khi nào và điều bạn muốn làm rõ nhất.",
   "dashboard.workspaceTitle":"Không gian hồ sơ của bạn", "dashboard.workspaceBody":"Xem lại các báo cáo đã có hoặc tạo ca bệnh mới bằng hồ sơ đã khử định danh.", "dashboard.search":"Tìm ca bệnh", "dashboard.searchPlaceholder":"Tìm theo tên ca bệnh", "dashboard.filterLabel":"Lọc ca bệnh", "dashboard.filterAll":"Tất cả", "dashboard.filterReady":"Đã có báo cáo", "dashboard.filterActive":"Đang xử lý", "dashboard.noResults":"Không tìm thấy ca bệnh phù hợp", "dashboard.clearFilters":"Xóa tìm kiếm và bộ lọc",
   "login.continueTerms":"Khi tiếp tục, bạn đồng ý với",
   "case.titleLabel":"Tên ca bệnh", "caseStatus.draft":"bản nháp", "caseStatus.ready":"sẵn sàng", "caseStatus.analyzing":"đang phân tích", "caseStatus.complete":"đã có báo cáo", "caseStatus.failed":"cần xử lý",

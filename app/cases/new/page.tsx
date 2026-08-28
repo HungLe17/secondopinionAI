@@ -46,6 +46,7 @@ import type { z } from "zod";
 import { trackSafeEvent } from "@/lib/analytics";
 import { authorizedFetch, authorizedFileUpload, localizedApiError } from "@/lib/api-client";
 import { useLanguage } from "@/components/language-provider";
+import { CustomSelect } from "@/components/custom-select";
 
 type FormValues = z.infer<typeof IntakeFormSchema>;
 type UploadItem = {
@@ -296,25 +297,44 @@ function NewCase() {
   return (
     <>
       <SiteHeader />
-      <main className="page narrow">
-        <div className="page-heading">
+      <main className="page case-builder-page">
+        <header className="case-builder-header">
           <div>
             <p className="eyebrow">{t("caseNew.eyebrow")}</p>
             <h1>{t("caseNew.title")}</h1>
             <p className={`save-status ${saving ? "is-saving" : ""}`}><span />{saving ? t("caseNew.saving") : t("caseNew.saved")}</p>
           </div>
-        </div>
-        <ol className="wizard-steps" aria-label={t("caseNew.title")}>
-          <li className={step === 1 ? "active" : ""} aria-current={step === 1 ? "step" : undefined}>
-            1 <span>{t("caseNew.step1")}</span>
-          </li>
-          <li className={step === 2 ? "active" : ""} aria-current={step === 2 ? "step" : undefined}>
-            2 <span>{t("caseNew.step2")}</span>
-          </li>
-          <li className={step === 3 ? "active" : ""} aria-current={step === 3 ? "step" : undefined}>
-            3 <span>{t("caseNew.step3")}</span>
-          </li>
-        </ol>
+          <div className="case-builder-stage">
+            <span>{step} / 3</span>
+            <strong>{step === 1 ? t("caseNew.step1") : step === 2 ? t("caseNew.step2") : t("caseNew.step3")}</strong>
+          </div>
+        </header>
+        <div className="case-builder-layout">
+          <aside className="case-builder-sidebar">
+            <div className="case-builder-progress" aria-hidden="true"><span style={{ width: `${(step / 3) * 100}%` }} /></div>
+            <ol className="wizard-steps case-builder-steps" aria-label={t("caseNew.title")}>
+              <li className={`${step === 1 ? "active" : ""} ${step > 1 ? "complete" : ""}`}>
+                <button type="button" onClick={() => setStep(1)} aria-current={step === 1 ? "step" : undefined}>
+                  <b>{step > 1 ? "✓" : "1"}</b><span>{t("caseNew.step1")}</span>
+                </button>
+              </li>
+              <li className={`${step === 2 ? "active" : ""} ${step > 2 ? "complete" : ""}`}>
+                <button type="button" disabled={!caseId} onClick={() => setStep(2)} aria-current={step === 2 ? "step" : undefined}>
+                  <b>{step > 2 ? "✓" : "2"}</b><span>{t("caseNew.step2")}</span>
+                </button>
+              </li>
+              <li className={step === 3 ? "active" : ""}>
+                <button type="button" disabled={readyUploads === 0 || uploads.some((item) => item.status === "extracting")} onClick={() => setStep(3)} aria-current={step === 3 ? "step" : undefined}>
+                  <b>3</b><span>{t("caseNew.step3")}</span>
+                </button>
+              </li>
+            </ol>
+            <div className="case-builder-guidance">
+              <ShieldCheck aria-hidden="true" />
+              <p>{t("privacy.intro")}</p>
+            </div>
+          </aside>
+          <div className="case-builder-content">
         {step === 1 && (
           <form
             className="intake-form"
@@ -325,23 +345,43 @@ function NewCase() {
           >
             <fieldset className="intake-group">
               <legend><span>01</span>{t("caseNew.detailsGroup")}</legend>
+              <p className="intake-group-help">{t("caseNew.detailsHelp")}</p>
               <div className="grid">
                 <Input label={t("caseNew.caseTitle")} name="title" form={form} />
-                <div className="two-col grid">
-                  <Input label={t("caseNew.age")} name="ageOrRange" form={form} />
-                  <Input label={t("caseNew.sex")} name="sexRelevantToCare" form={form} />
+                <div className="two-col grid demographic-grid">
+                  <div className="field">
+                    <label htmlFor="ageOrRange">{t("caseNew.age")}</label>
+                    <input id="ageOrRange" placeholder={fieldPlaceholder("ageOrRange", language)} autoComplete="off" aria-invalid={Boolean(form.formState.errors.ageOrRange)} aria-describedby={form.formState.errors.ageOrRange ? "ageOrRange-error ageOrRange-hint" : "ageOrRange-hint"} required {...form.register("ageOrRange")} />
+                    <small className="field-hint" id="ageOrRange-hint">{t("caseNew.ageHelp")}</small>
+                    <div className="age-quick-picks" role="group" aria-label={t("caseNew.ageHelp")}>
+                      {["0–12", "13–17", "18–29", "30–44", "45–59", "60–74", "75+"].map((range) => <button type="button" key={range} className={watchedValues.ageOrRange === range ? "selected" : ""} onClick={() => form.setValue("ageOrRange", range, { shouldDirty: true, shouldValidate: true })}>{range}</button>)}
+                    </div>
+                    {form.formState.errors.ageOrRange?.message && <span id="ageOrRange-error" className="error-text" role="alert">{validationMessage(String(form.formState.errors.ageOrRange.message), language)}</span>}
+                  </div>
+                  <div className="field">
+                    <label htmlFor="sexRelevantToCare">{t("caseNew.sex")}</label>
+                    <CustomSelect id="sexRelevantToCare" value={watchedValues.sexRelevantToCare || ""} placeholder={t("caseNew.sexPrompt")} onChange={(value) => form.setValue("sexRelevantToCare", value || null, { shouldDirty: true })} options={[
+                      { value: "female", label: t("caseNew.sexFemale") },
+                      { value: "male", label: t("caseNew.sexMale") },
+                      { value: "intersex", label: t("caseNew.sexIntersex") },
+                      { value: "prefer-not-to-say", label: t("caseNew.sexPreferNot") },
+                    ]} />
+                    <small className="field-hint">{t("caseNew.sexHelp")}</small>
+                  </div>
                 </div>
                 <div className="field">
                   <label htmlFor="language">{t("caseNew.reportLanguage")}</label>
-                  <select id="language" {...form.register("language")}>
-                    <option value="en">{t("caseNew.english")}</option>
-                    <option value="vi">{t("caseNew.vietnamese")}</option>
-                  </select>
+                  <CustomSelect id="language" value={watchedValues.language || "en"} placeholder={t("caseNew.reportLanguage")} onChange={(value) => form.setValue("language", value as "en" | "vi", { shouldDirty: true })} options={[
+                    { value: "en", label: t("caseNew.english"), detail: "English" },
+                    { value: "vi", label: t("caseNew.vietnamese"), detail: "Tiếng Việt" },
+                  ]} />
+                  <small className="field-hint">{t("caseNew.languageHelp")}</small>
                 </div>
               </div>
             </fieldset>
             <fieldset className="intake-group">
               <legend><span>02</span>{t("caseNew.clinicalGroup")}</legend>
+              <p className="intake-group-help">{t("caseNew.clinicalHelp")}</p>
               <div className="grid">
                 <Text label={t("caseNew.diagnosis")} name="currentDiagnosis" form={form} />
                 <Text label={t("caseNew.symptoms")} name="symptoms" form={form} />
@@ -485,7 +525,7 @@ function NewCase() {
           </section>
         )}
         {step === 3 && (
-          <section>
+          <section className="case-review-workspace">
             <div className="card review-card">
               <h2>{values.title}</h2>
               <div className="review-grid">
@@ -527,6 +567,8 @@ function NewCase() {
             </div>
           </section>
         )}
+          </div>
+        </div>
       </main>
       <Footer />
     </>

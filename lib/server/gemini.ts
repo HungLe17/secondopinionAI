@@ -62,6 +62,7 @@ export class GeminiAdapter {
     const prompt = `${SAFETY_POLICY}
 Answer the user's follow-up question in ${language}. Use only REPORT and RECORDS below. Do not add outside medical facts.
 Lead with a direct answer, then explain what in the supplied evidence supports it and what remains unknown.
+Format the answer for scanning: use short Markdown headings on their own lines, blank lines between sections, and concise "- " bullet points for evidence, unknowns, or next steps. Do not use tables.
 If the question asks for a diagnosis, medication change, dosage, or treatment decision, explain the report's evidence without making that decision and redirect the user to a licensed clinician.
 If the question describes a possible emergency, advise immediate in-person help or the local emergency service; in Vietnam the emergency medical number is 115.
 Every record-derived claim must cite one or more exact source objects already present in RECORDS. Never invent citations.

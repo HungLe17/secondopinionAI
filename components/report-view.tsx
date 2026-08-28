@@ -57,17 +57,33 @@ export function ReportView({ report, records, caseId, readOnly = false, onDelete
     setCopied(true); window.setTimeout(() => setCopied(false), 1800);
   };
 
+  const generatedDate = format(new Date(), "PPP", { locale: language === "vi" ? viLocale : undefined });
+
   return <>
-    <div className="print-only"><strong>Second Opinion AI</strong><div>{t("report.generated", { date: format(new Date(), "PPP", { locale: language === "vi" ? viLocale : undefined }) })}</div><p>{t("report.disclaimerTitle")} {t("report.disclaimer")}</p></div>
+    <header className="print-only print-report-header">
+      <div><strong>Second Opinion AI</strong><span>{t("report.reviewTitle")}</span></div>
+      <p>{t("report.generated", { date: generatedDate })}</p>
+      <dl><div><dt>{t("report.reviewedRecords")}</dt><dd>{records.length}</dd></div><div><dt>{t("report.reportStatus")}</dt><dd>{t("report.readyToReview")}</dd></div></dl>
+      <aside><strong>{t("report.disclaimerTitle")}</strong> {t("report.disclaimer")}</aside>
+    </header>
+    <section className="medical-result" aria-label={t("report.reviewTitle")}>
+    <header className="report-letterhead no-print">
+      <div className="report-letterhead-brand"><span><Stethoscope /></span><div><strong>Second Opinion AI</strong><small>{t("report.reviewTitle")}</small></div></div>
+      <dl>
+        <div><dt>{t("report.reviewedRecords")}</dt><dd>{records.length}</dd></div>
+        <div><dt>{t("report.preparedOn")}</dt><dd>{generatedDate}</dd></div>
+        <div><dt>{t("report.reportStatus")}</dt><dd><span />{t("report.readyToReview")}</dd></div>
+      </dl>
+    </header>
     <div className="report-command-bar no-print">
       <nav className="report-nav" aria-label={t("report.jumpTo")}>
         <span>{t("report.jumpTo")}</span>
-        <a href="#overview"><FileCheck2 />{t("report.navOverview")}</a>
-        <a href="#evidence"><ListChecks />{t("report.navEvidence")}</a>
-        <a href="#next-steps"><Stethoscope />{t("report.navActions")}</a>
-        <a href="#records"><FileText />{t("report.navRecords")}</a>
+        <a href="#overview" title={t("report.navOverview")}><FileCheck2 /><span>{t("report.navOverview")}</span></a>
+        <a href="#evidence" title={t("report.navEvidence")}><ListChecks /><span>{t("report.navEvidence")}</span></a>
+        <a href="#next-steps" title={t("report.navActions")}><Stethoscope /><span>{t("report.navActions")}</span></a>
+        <a href="#records" title={t("report.navRecords")}><FileText /><span>{t("report.navRecords")}</span></a>
       </nav>
-      <div className="report-tools"><AskAI caseId={caseId} onSelectSource={selectSource} /><button className="copy-brief" onClick={() => void copyBrief()}>{copied ? <CheckCircle2 /> : <Clipboard />}<span><strong>{copied ? t("report.copied") : t("report.copyBrief")}</strong><small>{t("report.copyBriefHint")}</small></span></button></div>
+      <div className="report-tools"><AskAI caseId={caseId} onSelectSource={selectSource} /><button className="copy-brief" title={copied ? t("report.copied") : t("report.copyBrief")} onClick={() => void copyBrief()}>{copied ? <CheckCircle2 /> : <Clipboard />}<span><strong>{copied ? t("report.copied") : t("report.copyBrief")}</strong><small>{t("report.copyBriefHint")}</small></span></button></div>
     </div>
     <div className="clinical-report">
       <article className="report-main">
@@ -132,6 +148,8 @@ export function ReportView({ report, records, caseId, readOnly = false, onDelete
         <div className="records-list">{records.map((record, index) => <article id={`record-${record.id}`} className={highlight === record.id ? "record-highlight" : ""} key={record.id}><span className="record-number">{String(index + 1).padStart(2, "0")}</span><div><strong>{record.displayName}</strong><p>{record.extraction?.documentType || record.contentType} · {(record.size / 1024).toFixed(0)} KiB</p>{record.extraction?.patientSummary && <details><summary>{t("report.viewSummary")}</summary><p>{record.extraction.patientSummary}</p></details>}</div>{!readOnly && onDeleteRecord && <button className="text-button" onClick={() => onDeleteRecord(record.id)}>{t("report.delete")}</button>}</article>)}</div>
       </aside>
     </div>
+    </section>
+    <footer className="print-only print-report-footer">Second Opinion AI <span>{t("report.disclaimerTitle")}</span></footer>
   </>;
 }
 

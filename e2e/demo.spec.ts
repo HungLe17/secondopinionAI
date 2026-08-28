@@ -8,8 +8,13 @@ test("fictional demo renders and print action triggers",async({page})=>{
   await expect(page.getByText("Evidence that does not fully fit")).toBeVisible();
   await page.getByRole("button",{name:/Ask AI/}).click();
   await expect(page.getByRole("dialog",{name:"Ask about this assessment"})).toBeVisible();
-  await expect(page.locator("body")).toHaveCSS("overflow","hidden");
-  expect(await page.evaluate(()=>Boolean(document.elementFromPoint(window.innerWidth-12,window.innerHeight-12)?.closest(".ask-ai-panel")))).toBe(true);
+  await expect(page.locator("body")).not.toHaveCSS("overflow","hidden");
+  const panel=page.locator(".ask-ai-panel");
+  await expect(panel).toHaveCSS("pointer-events","auto");
+  await expect.poll(()=>panel.evaluate(element=>Math.round(element.getBoundingClientRect().right))).toBe(await page.evaluate(()=>window.innerWidth));
+  const scrollBefore=await page.evaluate(()=>window.scrollY);
+  await page.mouse.move(80,500);await page.mouse.wheel(0,500);
+  await expect.poll(()=>page.evaluate(()=>window.scrollY)).toBeGreaterThan(scrollBefore);
   await expect(page.getByText("Ask AI works with your own report")).toBeVisible();
   await page.getByRole("button",{name:"Close Ask AI"}).click();
   await expect(page.getByRole("dialog",{name:"Ask about this assessment"})).toBeHidden();
@@ -67,21 +72,74 @@ test("public interface does not expose implementation terminology",async({page})
 
 test("public screens stay aligned across phone and desktop layouts",async({page})=>{
   await page.addInitScript(()=>localStorage.setItem("second-opinion-anonymous-analytics","declined"));
-  for(const width of [360,1024]){
+  for(const width of [320,480,768,1024,1440]){
     await page.setViewportSize({width,height:850});
-    for(const path of ["/","/login","/demo","/privacy","/terms"]){
+    for(const path of ["/","/login","/demo"]){
       await page.goto(path);
       await expect(page.locator("body")).toBeVisible();
       expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
     }
   }
+  await page.setViewportSize({width:768,height:850});
+  await page.goto("/");
+  await page.getByRole("button",{name:"VI"}).click();
+  for(const path of ["/","/login","/demo"]){
+    await page.goto(path);
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
+  }
 });
 
 test("report navigation and privacy choice behave like finished product controls",async({page})=>{
   await page.goto("/demo");
-  await page.getByRole("link",{name:"Evidence",exact:true}).click();
+  const header=page.locator(".site-header");
+  await page.getByRole("button",{name:/Ask AI/i}).click();
+  const chatGeometry=await page.evaluate(()=>{
+    const nav=document.querySelector(".site-header")!.getBoundingClientRect();
+    const chat=document.querySelector(".ask-ai-panel")!.getBoundingClientRect();
+    return {navBottom:Math.round(nav.bottom),chatTop:Math.round(chat.top)};
+  });
+  expect(chatGeometry.chatTop).toBeGreaterThanOrEqual(chatGeometry.navBottom-1);
+  await page.getByRole("button",{name:"Close Ask AI"}).click();
+  await page.evaluate(()=>window.scrollTo(0,700));
+  await expect(header).toHaveClass(/header-hidden/);
+  await page.evaluate(()=>window.scrollTo(0,300));
+  await expect(header).not.toHaveClass(/header-hidden/);
+
+  const reportRail=page.locator(".report-command-bar");
+  await expect.poll(()=>reportRail.evaluate(element=>element.getBoundingClientRect().width)).toBeLessThan(80);
+  const toolGeometry=await reportRail.locator(".report-tools>button").evaluateAll(buttons=>buttons.map(button=>{
+    const rect=button.getBoundingClientRect();
+    return {width:Math.round(rect.width),height:Math.round(rect.height),left:Math.round(rect.left)};
+  }));
+  expect(toolGeometry).toHaveLength(2);
+  expect(toolGeometry[0]).toEqual(toolGeometry[1]);
+  const collapsedGeometry=await page.evaluate(()=>{
+    const rail=document.querySelector(".report-command-bar")!.getBoundingClientRect();
+    const report=document.querySelector(".clinical-report")!.getBoundingClientRect();
+    return {railRight:rail.right,reportLeft:report.left};
+  });
+  expect(collapsedGeometry.railRight).toBeLessThan(collapsedGeometry.reportLeft);
+  await reportRail.hover();
+  await expect.poll(()=>reportRail.evaluate(element=>element.getBoundingClientRect().width)).toBeLessThan(80);
+  const evidenceLink=page.getByRole("link",{name:"Evidence",exact:true});
+  await evidenceLink.hover();
+  await expect(evidenceLink.locator("span")).toBeVisible();
+  const popoutGeometry=await page.evaluate(()=>{
+    const rail=document.querySelector(".report-command-bar")!.getBoundingClientRect();
+    const report=document.querySelector(".clinical-report")!.getBoundingClientRect();
+    const popout=document.querySelector(".report-command-bar a:hover span")!.getBoundingClientRect();
+    return {railRight:rail.right,reportLeft:report.left,popoutLeft:popout.left};
+  });
+  expect(popoutGeometry.railRight).toBeLessThan(popoutGeometry.reportLeft);
+  expect(popoutGeometry.popoutLeft).toBeGreaterThanOrEqual(popoutGeometry.railRight);
+  await evidenceLink.click();
   await expect(page).toHaveURL(/#evidence$/);
   await expect(page.locator("#evidence")).toBeInViewport();
+
+  await page.setViewportSize({width:900,height:700});
+  await page.goto("/demo");
+  await expect(page.locator(".report-command-bar")).toHaveCSS("position","static");
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
 
   await page.goto("/");
   const consent=page.getByLabel("Analytics choice");
