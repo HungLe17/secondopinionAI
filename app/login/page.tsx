@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, Suspense, useEffect, useMemo, useState } from "react";
+import { FormEvent, Suspense, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { ArrowRight, Eye, EyeOff, LockKeyhole, ShieldCheck } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -12,6 +12,8 @@ import { friendlyAuthError } from "@/lib/auth-errors";
 import { safeNextPath } from "@/lib/navigation";
 
 type Mode = "signin" | "create";
+
+const subscribeToEmbedding = () => () => {};
 
 export default function LoginPage() {
   return <Suspense fallback={<main className="page"><div className="skeleton hero-skeleton" /></main>}><LoginContent /></Suspense>;
@@ -31,6 +33,11 @@ function LoginContent() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const embeddedHost = useSyncExternalStore(
+    subscribeToEmbedding,
+    () => window.self !== window.top ? window.location.hostname : "",
+    () => "",
+  );
 
   useEffect(() => { if (user) router.replace(next); }, [user, next, router]);
 
@@ -39,7 +46,8 @@ function LoginContent() {
   const handleEmail = async (event: FormEvent) => {
     event.preventDefault(); setError(null); setMessage(null);
     if (!/^\S+@\S+\.\S+$/.test(email)) return setError(t("login.invalidEmail"));
-    if (password.length < 8) return setError(t("login.passwordRule"));
+    if (!password) return setError(t("login.passwordRequired"));
+    if (mode === "create" && password.length < 8) return setError(t("login.passwordRule"));
     if (mode === "create" && name.trim().length < 2) return setError(t("login.nameRule"));
     setBusy(true);
     try {
@@ -84,6 +92,7 @@ function LoginContent() {
           </div>
           <div className="auth-form-heading"><LockKeyhole size={22} /><div><h2>{mode === "signin" ? t("login.title") : t("login.createTitle")}</h2><p>{mode === "signin" ? t("login.signInBody") : t("login.createBody")}</p></div></div>
           {configError && <div className="notice error" role="alert">{configError}</div>}
+          {embeddedHost && <div className="notice auth-preview-notice"><strong>{t("login.previewTitle")}</strong><p>{t("login.previewBody")}</p><code>{embeddedHost}</code><button type="button" className="text-link" onClick={() => window.open(window.location.href, "_blank", "noopener,noreferrer")}>{t("login.openNewTab")} <ArrowRight size={14} /></button></div>}
           {error && <div className="notice error" role="alert">{error}</div>}
           {message && <div className="notice success" role="status">{message}</div>}
           <form className="auth-form" onSubmit={handleEmail} noValidate>

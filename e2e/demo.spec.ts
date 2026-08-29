@@ -38,11 +38,17 @@ test("landing and demo fit a 360px mobile viewport",async({page})=>{
 });
 
 test("email and password account access is complete and responsive",async({page})=>{
+  await page.route("https://identitytoolkit.googleapis.com/**",route=>route.fulfill({status:400,contentType:"application/json",body:JSON.stringify({error:{code:400,message:"INVALID_LOGIN_CREDENTIALS"}})}));
   await page.goto("/login");
   await expect(page.getByRole("tab",{name:"Sign in"})).toHaveAttribute("aria-selected","true");
   await expect(page.getByLabel("Email")).toBeVisible();
   await expect(page.getByLabel("Password",{exact:true})).toBeVisible();
   await expect(page.getByRole("button",{name:"Forgot password?"})).toBeVisible();
+  await page.getByLabel("Email").fill("existing@example.com");
+  await page.getByLabel("Password",{exact:true}).fill("sixsix");
+  await page.getByRole("button",{name:"Sign in with email"}).click();
+  await expect(page.getByText("The email or password is incorrect.")).toBeVisible();
+  await expect(page.getByText("Password must contain at least 8 characters.")).toHaveCount(0);
   await page.getByRole("tab",{name:"Create account"}).click();
   await expect(page.getByLabel("Name")).toBeVisible();
   await expect(page.getByRole("button",{name:"Create account",exact:true})).toBeVisible();
@@ -135,6 +141,26 @@ test("report navigation and privacy choice behave like finished product controls
   await evidenceLink.click();
   await expect(page).toHaveURL(/#evidence$/);
   await expect(page.locator("#evidence")).toBeInViewport();
+
+  await page.setViewportSize({width:1024,height:700});
+  await page.goto("/demo");
+  const fullHeader=await page.locator(".site-header").evaluate(element=>{
+    const rect=element.getBoundingClientRect();
+    return {left:Math.round(rect.left),right:Math.round(rect.right)};
+  });
+  expect(fullHeader).toEqual({left:0,right:1024});
+  const compactRail=page.locator(".report-command-bar");
+  await expect(compactRail).toHaveCSS("position","fixed");
+  for(const action of [page.getByRole("button",{name:/Ask AI/i}),page.getByRole("button",{name:/Copy visit brief/i})]){
+    await action.hover();
+    const label=action.locator(":scope > span");
+    await expect(label).toBeVisible();
+    const geometry=await Promise.all([
+      compactRail.evaluate(element=>element.getBoundingClientRect().right),
+      label.evaluate(element=>element.getBoundingClientRect().left),
+    ]);
+    expect(geometry[1]).toBeGreaterThanOrEqual(geometry[0]);
+  }
 
   await page.setViewportSize({width:900,height:700});
   await page.goto("/demo");

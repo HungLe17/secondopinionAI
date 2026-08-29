@@ -11,4 +11,17 @@ describe("friendlyAuthError", () => {
     expect(friendlyAuthError({ code: "auth/email-already-in-use" }, "vi")).toBe("Email này đã được dùng để tạo tài khoản.");
     expect(friendlyAuthError({ code: "auth/too-many-requests" }, "vi")).toContain("quá nhiều lần");
   });
+
+  it("explains hosted Google sign-in failures", () => {
+    expect(friendlyAuthError({ code: "auth/unauthorized-domain" }, "en")).toContain("Authorized domains");
+    expect(friendlyAuthError({ code: "auth/popup-blocked" }, "en")).toContain("new tab");
+    expect(friendlyAuthError({ code: "auth/web-storage-unsupported" }, "en")).toContain("embedded preview");
+  });
+
+  it("identifies Firebase deployment configuration failures", () => {
+    expect(friendlyAuthError({ code: "auth/invalid-api-key" }, "en")).toContain("FIREBASE_WEB_API_KEY");
+    expect(friendlyAuthError({ code: "auth/app-not-authorized" }, "en")).toContain("API key restrictions");
+    expect(friendlyAuthError({ code: "auth/configuration-not-found" }, "en")).toContain("same Firebase Web App");
+    expect(friendlyAuthError({ code: "auth/an-unmapped-code" }, "en")).toContain("auth/an-unmapped-code");
+  });
 });

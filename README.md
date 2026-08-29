@@ -115,6 +115,29 @@ $bytes = [System.IO.File]::ReadAllBytes("C:\path\to\service-account.json")
 
 On Cloud Run, the preferred alternative remains an attached runtime service account with IAM access to the Firebase project; in that environment the secret is not required.
 
+### Google AI Studio preview and Firebase login
+
+When importing this repository into Google AI Studio, add these secret names exactly as written:
+
+```dotenv
+FIREBASE_WEB_API_KEY=
+FIREBASE_AUTH_DOMAIN=your-firebase-project.firebaseapp.com
+FIREBASE_PROJECT_ID=
+FIREBASE_APP_ID=
+```
+
+`FIREBASE_MEASUREMENT_ID` is optional. `FIREBASE_SERVICE_ACCOUNT_BASE64` is required by protected server routes such as uploads, but it does not configure browser sign-in. Do not put the AI Studio hostname in `FIREBASE_AUTH_DOMAIN`; retain the `firebaseapp.com` value from the Firebase web-app configuration.
+
+After AI Studio rebuilds the app:
+
+1. Open `/api/config`. A successful response confirms that the four web values reached the deployed runtime; a 503 response names every missing or misspelled variable.
+2. On the login page, copy the hostname shown in the AI Studio preview notice.
+3. In Firebase Console, open **Authentication -> Settings -> Authorized domains** and add that exact hostname without `https://` or a path.
+4. Confirm that **Authentication -> Sign-in method -> Google** is enabled.
+5. Use **Open in a new tab** on the login page to test Google sign-in outside AI Studio's embedded preview. The app deliberately uses popup sign-in and does not fall back to redirect sign-in on non-Firebase hosting.
+
+Repeat step 3 for the final published hostname if it differs from the preview hostname.
+
 ### Emulators
 
 Only Authentication and Firestore emulators are needed:

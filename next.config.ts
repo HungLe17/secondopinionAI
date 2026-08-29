@@ -1,5 +1,7 @@
 import type { NextConfig } from "next";
 
+const isDevelopment = process.env.NODE_ENV === "development";
+
 const csp = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://www.googletagmanager.com",
@@ -19,16 +21,29 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1"],
   poweredByHeader: false,
   async headers() {
-    return [{
+    const sharedHeaders = [
+      { key: "X-Content-Type-Options", value: "nosniff" },
+      { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+      { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+    ];
+    const productionHeaders = [
+      { key: "Content-Security-Policy", value: csp },
+      { key: "X-Frame-Options", value: "DENY" },
+    ];
+    const rules: Array<{
+      source: string;
+      headers: Array<{ key: string; value: string }>;
+      missing?: Array<{ type: "host"; value: string }>;
+    }> = [{
       source: "/(.*)",
-      headers: [
-        { key: "Content-Security-Policy", value: csp },
-        { key: "X-Content-Type-Options", value: "nosniff" },
-        { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-        { key: "X-Frame-Options", value: "DENY" },
-        { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" }
-      ]
+      headers: sharedHeaders,
     }];
+    if (!isDevelopment) rules.push({
+      source: "/(.*)",
+      missing: [{ type: "host" as const, value: "(?<aiStudioPreview>.*\\.usercontent\\.goog)" }],
+      headers: productionHeaders,
+    });
+    return rules;
   }
 };
 

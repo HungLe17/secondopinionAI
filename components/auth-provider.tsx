@@ -17,7 +17,6 @@ import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
   signInWithPopup,
-  signInWithRedirect,
   signOut,
   updateProfile,
 } from "firebase/auth";
@@ -85,9 +84,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         });
       })
-      .catch(() => {
+      .catch((error: unknown) => {
         setConfigError(
-          "Account access is temporarily unavailable. The sample report remains available.",
+          error instanceof Error
+            ? error.message
+            : "Account access is temporarily unavailable. The sample report remains available.",
         );
         setLoading(false);
       });
@@ -97,22 +98,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = useCallback(async () => {
     const { auth } = await getFirebase();
     const provider = new GoogleAuthProvider();
-    try {
-      await signInWithPopup(auth, provider);
-      void trackSafeEvent("sign_in_success");
-    } catch (error) {
-      const code = (error as { code?: string }).code;
-      if (
-        code === "auth/popup-blocked" ||
-        code === "auth/cancelled-popup-request" ||
-        code === "auth/operation-not-supported-in-this-environment"
-      ) {
-        window.sessionStorage.setItem("second-opinion-sign-in-pending", "1");
-        await signInWithRedirect(auth, provider);
-        return;
-      }
-      throw error;
-    }
+    provider.setCustomParameters({ prompt: "select_account" });
+    auth.useDeviceLanguage();
+    await signInWithPopup(auth, provider);
+    void trackSafeEvent("sign_in_success");
   }, []);
 
   const logOut = useCallback(async () => {

@@ -17,7 +17,10 @@ let analytics: Analytics | undefined;
 export async function getPublicConfig() {
   if (config) return config;
   const response = await fetch("/api/config", { cache: "no-store" });
-  if (!response.ok) throw new Error("Firebase is not configured. Check the setup guide.");
+  if (!response.ok) {
+    const body = await response.json().catch(() => null) as { error?: { message?: string } } | null;
+    throw new Error(body?.error?.message || "Firebase is not configured. Check the setup guide.");
+  }
   config = await response.json() as PublicConfig;
   return config;
 }
